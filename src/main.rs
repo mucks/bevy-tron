@@ -15,7 +15,7 @@ pub struct Game {
 }
 
 fn main() {
-    // println!("Hello, world!");
+    //println!("Hello, world!");
     App::new()
         .init_resource::<Game>()
         .add_plugins(DefaultPlugins)
@@ -112,12 +112,12 @@ fn player_movement_system(
     if keyboard_input.just_pressed(KeyCode::A) {
         game.player.turn_left();
         game.player
-            .draw_line(&mut commands, &mut meshes, &mut materials, false);
+            .draw_line(&mut commands, &mut meshes, &mut materials);
     }
     if keyboard_input.just_pressed(KeyCode::E) {
         game.player.turn_right();
         game.player
-            .draw_line(&mut commands, &mut meshes, &mut materials, true);
+            .draw_line(&mut commands, &mut meshes, &mut materials);
     }
 
     game.player.drive(&mut transforms, time.delta_seconds());

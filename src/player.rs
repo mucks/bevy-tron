@@ -3,16 +3,16 @@ use std::f32::consts::PI;
 use crate::direction::Direction;
 use bevy::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TurnDirection {
     Left,
     Right,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Turn {
     pos: Vec3,
-    direcition: TurnDirection,
+    direction: TurnDirection,
 }
 
 #[derive(Debug)]
@@ -23,20 +23,23 @@ pub struct Player {
     entity: Option<Entity>,
     camera: Option<Entity>,
     boost: bool,
-    turn_points: Vec<Vec3>,
+    turn_points: Vec<Turn>,
 }
 
 impl Default for Player {
     fn default() -> Self {
         let pos = Vec3::new(1000.0, 0.5, 1000.0);
         Self {
-            speed: 1.0,
+            speed: 2.0,
             pos,
             direction: Direction::default(),
             entity: None,
             camera: None,
             boost: false,
-            turn_points: vec![pos],
+            turn_points: vec![Turn {
+                pos,
+                direction: TurnDirection::Left,
+            }],
         }
     }
 }
@@ -63,7 +66,7 @@ impl Player {
         let camera = commands
             .spawn(Camera3dBundle {
                 transform: Transform {
-                    translation: Vec3::new(-9.0, 2.4, -0.8),
+                    translation: Vec3::new(-11.0, 2.4, -0.8),
                     rotation: Quat::from_rotation_y(PI / -2.0),
                     scale: Vec3::new(1.0, 1.0, 1.0),
                 },
@@ -102,11 +105,19 @@ impl Player {
 
     pub fn turn_left(&mut self) {
         self.direction = self.direction.turn_left();
-        self.turn_points.push(self.pos);
+        self.turn_points.push({
+            Turn {
+                pos: self.pos,
+                direction: TurnDirection::Left,
+            }
+        });
     }
     pub fn turn_right(&mut self) {
         self.direction = self.direction.turn_right();
-        self.turn_points.push(self.pos);
+        self.turn_points.push(Turn {
+            pos: self.pos,
+            direction: TurnDirection::Right,
+        });
     }
 
     pub fn draw_line(
@@ -114,17 +125,20 @@ impl Player {
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
-        turn_right: bool,
     ) {
         let len = self.turn_points.len();
-        let mut a = self.turn_points[len - 2];
-        let mut b = self.turn_points[len - 1];
+        let a_turn = self.turn_points[len - 2];
+        let b_turn = self.turn_points[len - 1];
+
+        let mut a = a_turn.pos;
+        let b = b_turn.pos;
         let mut c = a;
         let mut d = b;
 
         let w = 0.2;
 
-        if turn_right {
+        if b_turn.direction == TurnDirection::Right {
+            // set points
             match self.direction {
                 Direction::Left => {
                     c.x -= w;
@@ -143,37 +157,69 @@ impl Player {
                     d.z += w;
                 }
             };
+
+            // fill gaps
+            if a_turn.direction == TurnDirection::Left {
+                match self.direction {
+                    Direction::Left => {
+                        a.z -= w;
+                        c.z -= w;
+                    }
+                    Direction::Right => {
+                        a.z += w;
+                        c.z += w;
+                    }
+                    Direction::Forward => {
+                        a.x += w;
+                        c.x += w;
+                    }
+                    Direction::Backward => {
+                        a.x -= w;
+                        c.x -= w;
+                    }
+                }
+            }
         } else {
             match self.direction {
                 Direction::Left => {
                     c.x += w;
                     d.x += w;
-                    // fill gap
-                    a.z += w;
-                    c.z += w;
                 }
                 Direction::Right => {
                     c.x -= w;
                     d.x -= w;
-                    // fill gap
-                    a.z -= w;
-                    c.z -= w;
                 }
                 Direction::Forward => {
                     c.z += w;
                     d.z += w;
-                    // fill gap
-                    a.x -= w;
-                    c.x -= w;
                 }
                 Direction::Backward => {
                     c.z -= w;
                     d.z -= w;
-                    // fill gap
-                    a.x += w;
-                    c.x += w;
                 }
             };
+
+            //fill gaps
+            if a_turn.direction == TurnDirection::Left {
+                match self.direction {
+                    Direction::Left => {
+                        a.z += w;
+                        c.z += w;
+                    }
+                    Direction::Right => {
+                        a.z -= w;
+                        c.z -= w;
+                    }
+                    Direction::Forward => {
+                        a.x -= w;
+                        c.x -= w;
+                    }
+                    Direction::Backward => {
+                        a.x += w;
+                        c.x += w;
+                    }
+                }
+            }
         }
 
         crate::draw_line(commands, meshes, materials, a, b, c, d);
