@@ -23,8 +23,8 @@ pub struct Line {
 }
 
 impl Line {
-    pub fn new(index: usize, a: Turn, b: Turn, y_offset: f32, height: f32) -> Self {
-        let edge_points = calculate_edge_points(&a, &b);
+    pub fn new(index: usize, a: Turn, b: Turn, y_offset: f32, width: f32, height: f32) -> Self {
+        let edge_points = calculate_edge_points(&a, &b, width);
         Self {
             vertices: generate_vertices(&edge_points, y_offset, height),
             indices: generate_indices(index as u32),
@@ -84,13 +84,13 @@ pub fn generate_indices(index: u32) -> Vec<u32> {
     .collect()
 }
 
-fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn) -> EdgePoints {
+fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32) -> EdgePoints {
     let mut a = a_turn.pos;
     let b = b_turn.pos;
     let mut c = a;
     let mut d = b;
 
-    let w = 0.2;
+    let w = width;
 
     if b_turn.turn_direction == TurnDirection::Right {
         // set points

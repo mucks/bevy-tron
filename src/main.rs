@@ -33,7 +33,7 @@ pub fn draw_mesh(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     vertices: Vec<Vec3>,
     indices: Vec<u32>,
-) {
+) -> Entity {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
     mesh.insert_attribute(
@@ -46,18 +46,20 @@ pub fn draw_mesh(
 
     // In this example, normals and UVs don't matter,
     // so we just use the same value for all of them
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; 8]);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; 8]);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; vertices.len()]);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; vertices.len()]);
 
     // A triangle using vertices 0, 2, and 1.
     // Note: order matters. [0, 1, 2] will be flipped upside down, and you won't see it from behind!
     mesh.set_indices(Some(mesh::Indices::U32(indices)));
 
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(mesh),
-        material: materials.add(Color::rgb(0.9, 0., 0.).into()),
-        ..default()
-    });
+    commands
+        .spawn(PbrBundle {
+            mesh: meshes.add(mesh),
+            material: materials.add(Color::rgb(0.9, 0., 0.).into()),
+            ..default()
+        })
+        .id()
 }
 
 // Player movement system
@@ -78,12 +80,12 @@ fn player_movement_system(
     if keyboard_input.just_pressed(KeyCode::A) {
         game.player.turn_left();
         game.player
-            .draw_line(&mut commands, &mut meshes, &mut materials);
+            .draw_all_lines(&mut commands, &mut meshes, &mut materials);
     }
     if keyboard_input.just_pressed(KeyCode::E) {
         game.player.turn_right();
         game.player
-            .draw_line(&mut commands, &mut meshes, &mut materials);
+            .draw_all_lines(&mut commands, &mut meshes, &mut materials);
     }
 
     game.player.drive(&mut transforms, time.delta_seconds());

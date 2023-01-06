@@ -23,6 +23,7 @@ pub struct Player {
     direction: Direction,
     entity: Option<Entity>,
     camera: Option<Entity>,
+    line_entity: Option<Entity>,
     boost: bool,
     turn_points: Vec<Turn>,
 }
@@ -36,6 +37,7 @@ impl Default for Player {
             direction: Direction::default(),
             entity: None,
             camera: None,
+            line_entity: None,
             boost: false,
             turn_points: vec![Turn {
                 pos,
@@ -125,27 +127,33 @@ impl Player {
     }
 
     pub fn draw_all_lines(
-        &self,
+        &mut self,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
     ) {
+        let (vertices, indices) = self.get_all_vertices_and_indices();
+
+        //remove old line mesh
+        if let Some(entity) = self.line_entity {
+            commands.entity(entity).despawn_recursive();
+        }
+        //draw new line mesh
+        self.line_entity = Some(crate::draw_mesh(
+            commands, meshes, materials, vertices, indices,
+        ));
     }
 
     pub fn get_all_vertices_and_indices(&self) -> (Vec<Vec3>, Vec<u32>) {
         let len = self.turn_points.len();
-        //y
-        let y = 0.0;
-        //height
-        let h = 0.5;
 
         let mut total_indices: Vec<u32> = vec![];
         let mut total_vertices: Vec<Vec3> = vec![];
 
-        for i in (0..len - 1).step_by(2) {
+        for i in 0..len - 1 {
             let a_turn = self.turn_points[i];
             let b_turn = self.turn_points[i + 1];
-            let l = Line::new(i, a_turn, b_turn, 0.0, 0.5);
+            let l = Line::new(i, a_turn, b_turn, 0.0, 0.1, 0.5);
 
             total_vertices.extend(l.vertices);
             total_indices.extend(l.indices);
@@ -165,10 +173,8 @@ impl Player {
         // current turn
         let b_turn = self.turn_points[len - 1];
 
-        let l = Line::new(0, a_turn, b_turn, 0.0, 0.5);
+        let l = Line::new(0, a_turn, b_turn, 0.0, 0.1, 0.5);
 
         crate::draw_mesh(commands, meshes, materials, l.vertices, l.indices);
     }
-
-    //pub fn draw_knots(&self) {}
 }
