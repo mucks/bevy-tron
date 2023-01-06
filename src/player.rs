@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::direction::Direction;
+use crate::{direction::Direction, line::Line};
 use bevy::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -11,8 +11,9 @@ pub enum TurnDirection {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Turn {
-    pos: Vec3,
-    direction: TurnDirection,
+    pub pos: Vec3,
+    pub direction: Direction,
+    pub turn_direction: TurnDirection,
 }
 
 #[derive(Debug)]
@@ -38,7 +39,8 @@ impl Default for Player {
             boost: false,
             turn_points: vec![Turn {
                 pos,
-                direction: TurnDirection::Left,
+                direction: Direction::default(),
+                turn_direction: TurnDirection::Left,
             }],
         }
     }
@@ -108,7 +110,8 @@ impl Player {
         self.turn_points.push({
             Turn {
                 pos: self.pos,
-                direction: TurnDirection::Left,
+                direction: self.direction,
+                turn_direction: TurnDirection::Left,
             }
         });
     }
@@ -116,8 +119,38 @@ impl Player {
         self.direction = self.direction.turn_right();
         self.turn_points.push(Turn {
             pos: self.pos,
-            direction: TurnDirection::Right,
+            direction: self.direction,
+            turn_direction: TurnDirection::Right,
         });
+    }
+
+    pub fn draw_all_lines(
+        &self,
+        commands: &mut Commands,
+        meshes: &mut ResMut<Assets<Mesh>>,
+        materials: &mut ResMut<Assets<StandardMaterial>>,
+    ) {
+    }
+
+    pub fn get_all_vertices_and_indices(&self) -> (Vec<Vec3>, Vec<u32>) {
+        let len = self.turn_points.len();
+        //y
+        let y = 0.0;
+        //height
+        let h = 0.5;
+
+        let mut total_indices: Vec<u32> = vec![];
+        let mut total_vertices: Vec<Vec3> = vec![];
+
+        for i in (0..len - 1).step_by(2) {
+            let a_turn = self.turn_points[i];
+            let b_turn = self.turn_points[i + 1];
+            let l = Line::new(i, a_turn, b_turn, 0.0, 0.5);
+
+            total_vertices.extend(l.vertices);
+            total_indices.extend(l.indices);
+        }
+        (total_vertices, total_indices)
     }
 
     pub fn draw_line(
@@ -127,102 +160,14 @@ impl Player {
         materials: &mut ResMut<Assets<StandardMaterial>>,
     ) {
         let len = self.turn_points.len();
+        // last turn
         let a_turn = self.turn_points[len - 2];
+        // current turn
         let b_turn = self.turn_points[len - 1];
 
-        let mut a = a_turn.pos;
-        let b = b_turn.pos;
-        let mut c = a;
-        let mut d = b;
+        let l = Line::new(0, a_turn, b_turn, 0.0, 0.5);
 
-        let w = 0.2;
-
-        if b_turn.direction == TurnDirection::Right {
-            // set points
-            match self.direction {
-                Direction::Left => {
-                    c.x -= w;
-                    d.x -= w;
-                }
-                Direction::Right => {
-                    c.x += w;
-                    d.x += w;
-                }
-                Direction::Forward => {
-                    c.z -= w;
-                    d.z -= w;
-                }
-                Direction::Backward => {
-                    c.z += w;
-                    d.z += w;
-                }
-            };
-
-            // fill gaps
-            if a_turn.direction == TurnDirection::Left {
-                match self.direction {
-                    Direction::Left => {
-                        a.z -= w;
-                        c.z -= w;
-                    }
-                    Direction::Right => {
-                        a.z += w;
-                        c.z += w;
-                    }
-                    Direction::Forward => {
-                        a.x += w;
-                        c.x += w;
-                    }
-                    Direction::Backward => {
-                        a.x -= w;
-                        c.x -= w;
-                    }
-                }
-            }
-        } else {
-            match self.direction {
-                Direction::Left => {
-                    c.x += w;
-                    d.x += w;
-                }
-                Direction::Right => {
-                    c.x -= w;
-                    d.x -= w;
-                }
-                Direction::Forward => {
-                    c.z += w;
-                    d.z += w;
-                }
-                Direction::Backward => {
-                    c.z -= w;
-                    d.z -= w;
-                }
-            };
-
-            //fill gaps
-            if a_turn.direction == TurnDirection::Left {
-                match self.direction {
-                    Direction::Left => {
-                        a.z += w;
-                        c.z += w;
-                    }
-                    Direction::Right => {
-                        a.z -= w;
-                        c.z -= w;
-                    }
-                    Direction::Forward => {
-                        a.x -= w;
-                        c.x -= w;
-                    }
-                    Direction::Backward => {
-                        a.x += w;
-                        c.x += w;
-                    }
-                }
-            }
-        }
-
-        crate::draw_line(commands, meshes, materials, a, b, c, d);
+        crate::draw_mesh(commands, meshes, materials, l.vertices, l.indices);
     }
 
     //pub fn draw_knots(&self) {}
