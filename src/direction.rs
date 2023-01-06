@@ -1,6 +1,6 @@
 use self::Direction::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
     Left,
     Right,

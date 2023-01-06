@@ -1,34 +1,42 @@
 use std::f32::consts::PI;
 
 use crate::direction::Direction;
-use bevy::{
-    prelude::*,
-    render::{mesh, render_resource::PrimitiveTopology},
-};
+use bevy::prelude::*;
+
+#[derive(Debug)]
+pub enum TurnDirection {
+    Left,
+    Right,
+}
+
+#[derive(Debug)]
+pub struct Turn {
+    pos: Vec3,
+    direcition: TurnDirection,
+}
 
 #[derive(Debug)]
 pub struct Player {
     speed: f32,
-    pos: Vec2,
+    pos: Vec3,
     direction: Direction,
     entity: Option<Entity>,
     camera: Option<Entity>,
-    y: f32,
     boost: bool,
-    turn_points: Vec<Vec2>,
+    turn_points: Vec<Vec3>,
 }
 
 impl Default for Player {
     fn default() -> Self {
+        let pos = Vec3::new(1000.0, 0.5, 1000.0);
         Self {
             speed: 1.0,
-            pos: Vec2::new(0.0, 0.0),
+            pos,
             direction: Direction::default(),
             entity: None,
             camera: None,
-            y: 0.5,
             boost: false,
-            turn_points: Vec::new(),
+            turn_points: vec![pos],
         }
     }
 }
@@ -44,9 +52,9 @@ impl Player {
         let entity = commands
             .spawn(SceneBundle {
                 transform: Transform {
-                    translation: Vec3::new(self.pos.x, self.y, self.pos.y),
+                    translation: Vec3::new(self.pos.x, self.pos.y, self.pos.z),
                     rotation: Quat::from_rotation_y(PI / 2.0),
-                    scale: Vec3::splat(0.5),
+                    scale: Vec3::new(0.5, 0.5, 0.5),
                 },
                 scene: asset_server.load("models/bike.glb#Scene0"),
                 ..default()
@@ -77,12 +85,12 @@ impl Player {
         match self.direction {
             Direction::Left => self.pos.x -= self.speed * delta_speed,
             Direction::Right => self.pos.x += self.speed * delta_speed,
-            Direction::Forward => self.pos.y -= self.speed * delta_speed,
-            Direction::Backward => self.pos.y += self.speed * delta_speed,
+            Direction::Forward => self.pos.z -= self.speed * delta_speed,
+            Direction::Backward => self.pos.z += self.speed * delta_speed,
         }
 
         if let Ok(mut transform) = transforms.get_mut(self.entity.unwrap()) {
-            transform.translation = Vec3::new(self.pos.x, self.y, self.pos.y);
+            transform.translation = Vec3::new(self.pos.x, self.pos.y, self.pos.z);
             match self.direction {
                 Direction::Left => transform.rotation = Quat::from_rotation_y(PI),
                 Direction::Right => transform.rotation = Quat::from_rotation_y(0.0),
@@ -101,5 +109,75 @@ impl Player {
         self.turn_points.push(self.pos);
     }
 
-    pub fn draw_knots(&self) {}
+    pub fn draw_line(
+        &self,
+        commands: &mut Commands,
+        meshes: &mut ResMut<Assets<Mesh>>,
+        materials: &mut ResMut<Assets<StandardMaterial>>,
+        turn_right: bool,
+    ) {
+        let len = self.turn_points.len();
+        let mut a = self.turn_points[len - 2];
+        let mut b = self.turn_points[len - 1];
+        let mut c = a;
+        let mut d = b;
+
+        let w = 0.2;
+
+        if turn_right {
+            match self.direction {
+                Direction::Left => {
+                    c.x -= w;
+                    d.x -= w;
+                }
+                Direction::Right => {
+                    c.x += w;
+                    d.x += w;
+                }
+                Direction::Forward => {
+                    c.z -= w;
+                    d.z -= w;
+                }
+                Direction::Backward => {
+                    c.z += w;
+                    d.z += w;
+                }
+            };
+        } else {
+            match self.direction {
+                Direction::Left => {
+                    c.x += w;
+                    d.x += w;
+                    // fill gap
+                    a.z += w;
+                    c.z += w;
+                }
+                Direction::Right => {
+                    c.x -= w;
+                    d.x -= w;
+                    // fill gap
+                    a.z -= w;
+                    c.z -= w;
+                }
+                Direction::Forward => {
+                    c.z += w;
+                    d.z += w;
+                    // fill gap
+                    a.x -= w;
+                    c.x -= w;
+                }
+                Direction::Backward => {
+                    c.z -= w;
+                    d.z -= w;
+                    // fill gap
+                    a.x += w;
+                    c.x += w;
+                }
+            };
+        }
+
+        crate::draw_line(commands, meshes, materials, a, b, c, d);
+    }
+
+    //pub fn draw_knots(&self) {}
 }

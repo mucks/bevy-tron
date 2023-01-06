@@ -15,6 +15,7 @@ pub struct Game {
 }
 
 fn main() {
+    // println!("Hello, world!");
     App::new()
         .init_resource::<Game>()
         .add_plugins(DefaultPlugins)
@@ -25,20 +26,16 @@ fn main() {
         .run();
 }
 
-fn draw_line(
+pub fn draw_line(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+    d: Vec3,
 ) {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-
-    //width
-    let w = 0.2;
-
-    let a = Vec3::new(0.0, 0.0, 0.0);
-    let b = Vec3::new(2.0, 0.0, 0.0);
-    let c = Vec3::new(0.0, 0.0, w);
-    let d = Vec3::new(2.0, 0.0, w);
 
     //y
     let y = 0.0;
@@ -103,6 +100,9 @@ fn player_movement_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut game: ResMut<Game>,
     mut transforms: Query<&mut Transform>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if keyboard_input.pressed(KeyCode::Comma) {
         game.player.boost();
@@ -111,9 +111,13 @@ fn player_movement_system(
     }
     if keyboard_input.just_pressed(KeyCode::A) {
         game.player.turn_left();
+        game.player
+            .draw_line(&mut commands, &mut meshes, &mut materials, false);
     }
     if keyboard_input.just_pressed(KeyCode::E) {
         game.player.turn_right();
+        game.player
+            .draw_line(&mut commands, &mut meshes, &mut materials, true);
     }
 
     game.player.drive(&mut transforms, time.delta_seconds());
@@ -128,13 +132,13 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     game.player.spawn(&mut commands, &asset_server);
-    draw_line(&mut commands, &mut meshes, &mut materials);
 
     commands.spawn(InfiniteGridBundle::default());
     //plane
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 5.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        transform: Transform::from_xyz(1000., 8.0, 1000.),
         ..default()
     });
     // light
@@ -144,7 +148,7 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform::from_xyz(1000., 8.0, 1000.),
         ..default()
     });
 }
