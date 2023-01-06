@@ -87,8 +87,9 @@ fn player_movement_system(
         game.player
             .draw_all_lines(&mut commands, &mut meshes, &mut materials);
     }
-
     game.player.drive(&mut transforms, time.delta_seconds());
+    game.player
+        .draw_active_line(&mut commands, &mut meshes, &mut materials);
 }
 
 /// set up a simple 3D scene
@@ -106,7 +107,7 @@ fn setup(
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 5.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_xyz(1000., 8.0, 1000.),
+        transform: Transform::from_xyz(1000., 0.0, 1000.),
         ..default()
     });
     // light
@@ -116,7 +117,7 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(1000., 8.0, 1000.),
+        transform: Transform::from_xyz(1000., 100.0, 1000.),
         ..default()
     });
 }

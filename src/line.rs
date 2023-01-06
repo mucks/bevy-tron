@@ -20,11 +20,20 @@ pub struct Line {
     pub height: f32,
     pub vertices: Vec<Vec3>,
     pub indices: Vec<u32>,
+    pub active: bool,
 }
 
 impl Line {
-    pub fn new(index: usize, a: Turn, b: Turn, y_offset: f32, width: f32, height: f32) -> Self {
-        let edge_points = calculate_edge_points(&a, &b, width);
+    pub fn new(
+        index: usize,
+        a: Turn,
+        b: Turn,
+        y_offset: f32,
+        width: f32,
+        height: f32,
+        active: bool,
+    ) -> Self {
+        let edge_points = calculate_edge_points(&a, &b, width, active);
         Self {
             vertices: generate_vertices(&edge_points, y_offset, height),
             indices: generate_indices(index as u32),
@@ -32,6 +41,7 @@ impl Line {
             y_offset,
             height,
             index,
+            active,
         }
     }
     // Generates square from 4 points without bottom square
@@ -84,13 +94,13 @@ pub fn generate_indices(index: u32) -> Vec<u32> {
     .collect()
 }
 
-fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32) -> EdgePoints {
+fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32, active: bool) -> EdgePoints {
     let mut a = a_turn.pos;
     let b = b_turn.pos;
     let mut c = a;
     let mut d = b;
 
-    let w = width;
+    let mut w = width;
 
     if b_turn.turn_direction == TurnDirection::Right {
         // set points
@@ -156,6 +166,9 @@ fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32) -> EdgePoints
 
         //fill gaps
         if a_turn.turn_direction == TurnDirection::Left {
+            if active {
+                w /= 2.0;
+            }
             match b_turn.direction {
                 Direction::Left => {
                     a.z += w;

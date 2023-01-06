@@ -24,6 +24,7 @@ pub struct Player {
     entity: Option<Entity>,
     camera: Option<Entity>,
     line_entity: Option<Entity>,
+    active_line_entity: Option<Entity>,
     boost: bool,
     turn_points: Vec<Turn>,
 }
@@ -38,6 +39,7 @@ impl Default for Player {
             entity: None,
             camera: None,
             line_entity: None,
+            active_line_entity: None,
             boost: false,
             turn_points: vec![Turn {
                 pos,
@@ -70,8 +72,8 @@ impl Player {
         let camera = commands
             .spawn(Camera3dBundle {
                 transform: Transform {
-                    translation: Vec3::new(-11.0, 2.4, -0.8),
-                    rotation: Quat::from_rotation_y(PI / -2.0),
+                    translation: Vec3::new(-11.0, 30., 2.),
+                    rotation: Quat::from_rotation_x(PI / -2.0),
                     scale: Vec3::new(1.0, 1.0, 1.0),
                 },
                 ..default()
@@ -153,7 +155,7 @@ impl Player {
         for i in 0..len - 1 {
             let a_turn = self.turn_points[i];
             let b_turn = self.turn_points[i + 1];
-            let l = Line::new(i, a_turn, b_turn, 0.0, 0.1, 0.5);
+            let l = Line::new(i, a_turn, b_turn, 0.0, 0.1, 0.5, false);
 
             total_vertices.extend(l.vertices);
             total_indices.extend(l.indices);
@@ -161,20 +163,40 @@ impl Player {
         (total_vertices, total_indices)
     }
 
-    pub fn draw_line(
-        &self,
+    pub fn draw_active_line(
+        &mut self,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
     ) {
         let len = self.turn_points.len();
         // last turn
-        let a_turn = self.turn_points[len - 2];
-        // current turn
-        let b_turn = self.turn_points[len - 1];
+        let a_turn = self.turn_points[len - 1];
 
-        let l = Line::new(0, a_turn, b_turn, 0.0, 0.1, 0.5);
+        let dir = match a_turn.turn_direction {
+            TurnDirection::Left => a_turn.direction.turn_left(),
+            TurnDirection::Right => a_turn.direction.turn_right(),
+        };
 
-        crate::draw_mesh(commands, meshes, materials, l.vertices, l.indices);
+        let l = Line::new(
+            0,
+            a_turn,
+            Turn {
+                turn_direction: a_turn.turn_direction,
+                direction: dir,
+                pos: self.pos,
+            },
+            0.0,
+            0.2,
+            0.5,
+            true,
+        );
+
+        if let Some(entity) = self.active_line_entity {
+            commands.entity(entity).despawn_recursive();
+        }
+        self.active_line_entity = Some(crate::draw_mesh(
+            commands, meshes, materials, l.vertices, l.indices,
+        ));
     }
 }

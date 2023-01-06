@@ -23,7 +23,7 @@ impl Direction {
             Backward => Right,
         }
     }
-    pub fn turn_right(&mut self) -> Self {
+    pub fn turn_right(&self) -> Self {
         match self {
             Left => Forward,
             Right => Backward,
