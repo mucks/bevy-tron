@@ -32,47 +32,62 @@ fn draw_line(
 ) {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
+    //width
+    let w = 0.2;
+
     let a = Vec3::new(0.0, 0.0, 0.0);
     let b = Vec3::new(2.0, 0.0, 0.0);
-    let c = Vec3::new(0.0, 0.0, 1.0);
-    let d = Vec3::new(2.0, 0.0, 1.0);
+    let c = Vec3::new(0.0, 0.0, w);
+    let d = Vec3::new(2.0, 0.0, w);
+
+    //y
+    let y = 0.0;
+    //height
+    let h = 0.5;
 
     // Positions of the vertices
     // See https://bevy-cheatbook.github.io/features/coords.html
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         vec![
-            //A -> B
-            [a.x, 1., a.z],
-            [a.x, 0., a.z],
-            [b.x, 0., b.z],
-            //
-            [a.x, 1., a.z],
-            [b.x, 0., b.z],
-            [b.x, 1., b.z],
-            // A -> C
-            [a.x, 0., a.z],
-            [a.x, 1., a.z],
-            [-c.x, 0., -c.z],
-            //
-            [a.x, 1., a.z],
-            [-c.x, 0., -c.z],
-            [-c.x, 1., -c.z],
+            //A
+            [a.x, y, a.z],     //0
+            [a.x, y + h, a.z], //1
+            //B
+            [b.x, y, b.z],     //2
+            [b.x, y + h, b.z], //3
+            //C
+            [c.x, y, c.z],     //4
+            [c.x, y + h, c.z], //5
+            //D
+            [d.x, y, d.z],     //6
+            [d.x, y + h, d.z], //7
         ],
     );
 
     // In this example, normals and UVs don't matter,
     // so we just use the same value for all of them
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; 12]);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; 12]);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; 8]);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; 8]);
 
     // A triangle using vertices 0, 2, and 1.
     // Note: order matters. [0, 1, 2] will be flipped upside down, and you won't see it from behind!
     mesh.set_indices(Some(mesh::Indices::U32(vec![
+        // long side
         0, 1, 2, //
-        3, 4, 5, //
-        6, 7, 8, //
-        11, 10, 9,
+        3, 2, 1, //
+        // long side
+        6, 5, 4, //
+        5, 6, 7, //
+        // short side
+        0, 4, 5, //
+        5, 1, 0, //
+        // short side
+        7, 6, 2, //
+        2, 3, 7, //
+        //top
+        5, 3, 1, //
+        3, 5, 7, //
     ])));
 
     commands.spawn(PbrBundle {
