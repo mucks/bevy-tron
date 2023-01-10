@@ -5,7 +5,7 @@ use crate::{
     player::{Turn, TurnDirection},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EdgePoints {
     a: Vec3,
     b: Vec3,
@@ -13,6 +13,7 @@ pub struct EdgePoints {
     d: Vec3,
 }
 
+#[derive(Debug, Clone)]
 pub struct Line {
     pub index: usize,
     pub edge_points: EdgePoints,
@@ -20,20 +21,11 @@ pub struct Line {
     pub height: f32,
     pub vertices: Vec<Vec3>,
     pub indices: Vec<u32>,
-    pub active: bool,
 }
 
 impl Line {
-    pub fn new(
-        index: usize,
-        a: Turn,
-        b: Turn,
-        y_offset: f32,
-        width: f32,
-        height: f32,
-        active: bool,
-    ) -> Self {
-        let edge_points = calculate_edge_points(&a, &b, width, active);
+    pub fn new(index: usize, a: Turn, b: Turn, y_offset: f32, width: f32, height: f32) -> Self {
+        let edge_points = calculate_edge_points(&a, &b, width);
         Self {
             vertices: generate_vertices(&edge_points, y_offset, height),
             indices: generate_indices(index as u32),
@@ -41,7 +33,35 @@ impl Line {
             y_offset,
             height,
             index,
-            active,
+        }
+    }
+
+    pub fn is_hit(&self, pos: &Vec3) {
+        //bugged
+        let a = self.edge_points.a;
+        let b = self.edge_points.b;
+        let c = self.edge_points.c;
+        let d = self.edge_points.d;
+
+        let xs = vec![a.x, b.x, c.x, d.x];
+        let zs = vec![a.z, b.z, c.z, d.z];
+
+        let min_x = xs.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let max_x = xs.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let min_z = zs.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let max_z = zs.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+
+        let min_px = pos.x - min_x;
+        let min_pz = pos.z - min_z;
+
+        let max_px = pos.x - max_x;
+        let max_pz = pos.z - max_z;
+
+        // buffer value
+        let bv = 0.05;
+
+        if min_px > -bv && min_pz > -bv && max_px < bv && max_pz < bv {
+            println!("----\nHIT {:?}\n-----", std::time::Instant::now());
         }
     }
     // Generates square from 4 points without bottom square
@@ -94,13 +114,13 @@ pub fn generate_indices(index: u32) -> Vec<u32> {
     .collect()
 }
 
-fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32, active: bool) -> EdgePoints {
+fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32) -> EdgePoints {
     let mut a = a_turn.pos;
     let b = b_turn.pos;
     let mut c = a;
     let mut d = b;
 
-    let mut w = width;
+    let w = width;
 
     if b_turn.turn_direction == TurnDirection::Right {
         // set points
@@ -166,9 +186,6 @@ fn calculate_edge_points(a_turn: &Turn, b_turn: &Turn, width: f32, active: bool)
 
         //fill gaps
         if a_turn.turn_direction == TurnDirection::Left {
-            if active {
-                w /= 2.0;
-            }
             match b_turn.direction {
                 Direction::Left => {
                     a.z += w;

@@ -1,5 +1,3 @@
-use self::Direction::*;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Direction {
     Left,
@@ -10,12 +8,13 @@ pub enum Direction {
 
 impl Default for Direction {
     fn default() -> Self {
-        Forward
+        Direction::Forward
     }
 }
 
 impl Direction {
     pub fn turn_left(&self) -> Self {
+        use self::Direction::*;
         match self {
             Left => Backward,
             Right => Forward,
@@ -24,6 +23,7 @@ impl Direction {
         }
     }
     pub fn turn_right(&self) -> Self {
+        use self::Direction::*;
         match self {
             Left => Forward,
             Right => Backward,

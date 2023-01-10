@@ -1,9 +1,14 @@
+use std::f32::consts::PI;
+
 use bevy::{
     prelude::*,
-    render::{mesh, render_resource::PrimitiveTopology},
+    render::{
+        mesh,
+        render_resource::{PrimitiveTopology, Texture},
+    },
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
-use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy_inspector_egui::{egui::TextureHandle, WorldInspectorPlugin};
 use player::Player;
 
 mod direction;
@@ -44,19 +49,21 @@ pub fn draw_mesh(
             .collect::<Vec<[f32; 3]>>(),
     );
 
-    // In this example, normals and UVs don't matter,
-    // so we just use the same value for all of them
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; vertices.len()]);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; vertices.len()]);
 
-    // A triangle using vertices 0, 2, and 1.
-    // Note: order matters. [0, 1, 2] will be flipped upside down, and you won't see it from behind!
     mesh.set_indices(Some(mesh::Indices::U32(indices)));
+
+    let material = StandardMaterial {
+        base_color: Color::rgb(0.9, 0.1, 0.1),
+        unlit: false,
+        ..Default::default()
+    };
 
     commands
         .spawn(PbrBundle {
             mesh: meshes.add(mesh),
-            material: materials.add(Color::rgb(0.9, 0., 0.).into()),
+            material: materials.add(material),
             ..default()
         })
         .id()
@@ -68,6 +75,7 @@ fn player_movement_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut game: ResMut<Game>,
     mut transforms: Query<&mut Transform>,
+    mut global_transforms: Query<&mut GlobalTransform>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -77,6 +85,12 @@ fn player_movement_system(
     } else {
         game.player.stop_boost();
     }
+
+    if keyboard_input.just_pressed(KeyCode::Y) {
+        game.player.switch_camera_mode();
+        game.player.apply_camera_mode(&mut transforms);
+    }
+
     if keyboard_input.just_pressed(KeyCode::A) {
         game.player.turn_left();
         game.player
@@ -90,6 +104,11 @@ fn player_movement_system(
     game.player.drive(&mut transforms, time.delta_seconds());
     game.player
         .draw_active_line(&mut commands, &mut meshes, &mut materials);
+    if let Some(pos) = game.player.hitbox_position(&mut global_transforms) {
+        for line in game.player.lines() {
+            line.is_hit(&pos);
+        }
+    }
 }
 
 /// set up a simple 3D scene
@@ -100,24 +119,20 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    game.player.spawn(&mut commands, &asset_server);
+    game.player
+        .spawn(&mut commands, &asset_server, &mut meshes, &mut materials);
 
     commands.spawn(InfiniteGridBundle::default());
-    //plane
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 5.0 })),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_xyz(1000., 0.0, 1000.),
-        ..default()
-    });
+
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             intensity: 1500.0,
             shadows_enabled: true,
+            range: 1000.0,
             ..default()
         },
-        transform: Transform::from_xyz(1000., 100.0, 1000.),
+        transform: Transform::from_xyz(1000.0, 8.0, 1000.0),
         ..default()
     });
 }
