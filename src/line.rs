@@ -36,7 +36,7 @@ impl Line {
         }
     }
 
-    pub fn is_hit(&self, pos: &Vec3) {
+    pub fn is_hit(&self, pos: &Vec3) -> bool {
         //bugged
         let a = self.edge_points.a;
         let b = self.edge_points.b;
@@ -60,9 +60,7 @@ impl Line {
         // buffer value
         let bv = 0.05;
 
-        if min_px > -bv && min_pz > -bv && max_px < bv && max_pz < bv {
-            println!("----\nHIT {:?}\n-----", std::time::Instant::now());
-        }
+        return min_px > -bv && min_pz > -bv && max_px < bv && max_pz < bv;
     }
     // Generates square from 4 points without bottom square
 }

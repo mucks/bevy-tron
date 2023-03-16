@@ -104,9 +104,14 @@ fn player_movement_system(
     game.player.drive(&mut transforms, time.delta_seconds());
     game.player
         .draw_active_line(&mut commands, &mut meshes, &mut materials);
+
+    // check if player hits his own line
     if let Some(pos) = game.player.hitbox_position(&mut global_transforms) {
         for line in game.player.lines() {
-            line.is_hit(&pos);
+            if line.is_hit(&pos) {
+                game.player.handle_got_hit(&mut commands);
+                println!("HIT!");
+            }
         }
     }
 }

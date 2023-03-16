@@ -16,7 +16,7 @@ pub struct Turn {
     pub turn_direction: TurnDirection,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Resource)]
 pub struct Player {
     speed: f32,
     pos: Vec3,
@@ -93,6 +93,13 @@ impl Player {
             if let Ok(mut transform) = transforms.get_mut(camera) {
                 *transform = self.camera_mode.transform();
             };
+        }
+    }
+
+    pub fn handle_got_hit(&mut self, commands: &mut Commands) {
+        if let Some(entity) = self.entity {
+            commands.entity(entity).despawn();
+            panic!("You got hit!");
         }
     }
 
